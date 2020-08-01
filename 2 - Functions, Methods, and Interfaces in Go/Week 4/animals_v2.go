@@ -59,7 +59,7 @@ func (s Snake) Move() {
 }
 
 func (s Snake) Speak() {
-	fmt.Println("Snake makes noise %s\n", s.speak)
+	fmt.Printf("Snake makes noise %s\n", s.speak)
 }
 
 func (s Snake) Type() string {
