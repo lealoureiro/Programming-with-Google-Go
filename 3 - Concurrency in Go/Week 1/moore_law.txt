@@ -1,0 +1,9 @@
+The Moore's law is the observation that says the number of transistors in CPU/Processor doubles every two years aproximate.
+
+The physical limiations are:
+
+Thermal limits: Because of temperature exccess that we can dissipate anymore the transitors inside CPU can't double anymore.
+Transistor Leakage: The transistors are so small that can start leak energy.
+Power problem: The power increases as transistor increases which is a problem nowadays with portable devices.
+Wall limit: We can find material so thin and small to make a proper wall inside transistor.
+Voltage scaling: With Voltage scaling reduces dynamic power consumption. Also is limited do noise and voltage threshold.
