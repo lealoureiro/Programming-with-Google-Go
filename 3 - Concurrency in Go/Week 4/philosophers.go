@@ -16,6 +16,12 @@ type Philosopher struct {
 	leftChopStick, rightChopStick *ChopStick
 }
 
+// PhilosopherAction represents an action of Philosopher in table
+type PhilosopherAction struct {
+	number  int
+	message string
+}
+
 var wg sync.WaitGroup
 
 func main() {
@@ -30,13 +36,7 @@ func main() {
 		philosophers[i] = &Philosopher{i, chopSticks[i], chopSticks[(i+1)%5]}
 	}
 
-	var channelToHost = []chan string{
-		make(chan string, 2),
-		make(chan string, 2),
-		make(chan string, 2),
-		make(chan string, 2),
-		make(chan string, 2),
-	}
+	var channelToHost chan PhilosopherAction = make(chan PhilosopherAction, 10)
 
 	var channelsToPhilosophers = []chan string{
 		make(chan string, 1),
@@ -54,7 +54,7 @@ func main() {
 	go host(channelToHost, channelsToPhilosophers)
 
 	for i := 0; i < 5; i++ {
-		go philosophers[i].eat(channelsToPhilosophers[i], channelToHost[i])
+		go philosophers[i].eat(channelsToPhilosophers[i], channelToHost)
 	}
 
 	wg.Wait()
@@ -62,18 +62,18 @@ func main() {
 
 }
 
-func (p Philosopher) eat(in chan string, out chan string) {
+func (p Philosopher) eat(in chan string, out chan PhilosopherAction) {
 
 	for i := 0; i < 3; i++ {
 
 		// request authorization to eat
-		fmt.Printf("Philosopher %d requesting authorization.\n", p.number)
-		out <- "START"
+		fmt.Printf("PHILOSOPHER %d: requesting authorization.\n", p.number)
+		out <- PhilosopherAction{p.number, "START"}
 
-		fmt.Printf("Philosopher %d waiting for authorization.\n", p.number)
+		fmt.Printf("PHILOSOPHER %d: waiting for authorization.\n", p.number)
 		received := <-in
 
-		fmt.Printf("Philosopher %d got authorization %s.\n", p.number, received)
+		fmt.Printf("PHILOSOPHER %d: got authorization %s.\n", p.number, received)
 
 		// take chop sticks at random order
 		o := rand.Intn(2)
@@ -85,31 +85,31 @@ func (p Philosopher) eat(in chan string, out chan string) {
 			p.leftChopStick.Lock()
 		}
 
-		fmt.Printf("Philosopher %d is eating meal %d.\n", p.number, i)
+		fmt.Printf("PHILOSOPHER %d: is eating meal %d.\n", p.number, i)
 
 		duration := rand.Intn(2000)
 		time.Sleep(time.Duration(duration) * time.Millisecond)
 
-		fmt.Printf("Philosopher %d finished eating meal %d.\n", p.number, i)
+		fmt.Printf("PHILOSOPHER %d: finished eating meal %d.\n", p.number, i)
 
 		p.leftChopStick.Unlock()
 		p.rightChopStick.Unlock()
 
 		// releasing authorization
-		out <- "FINISH"
+		out <- PhilosopherAction{p.number, "FINISH"}
 
 	}
 
-	fmt.Printf("Philosopher %d informing Host that finished all meals.", p.number)
-	out <- "COMPLETED"
+	fmt.Printf("PHILOSOPHER %d: informing Host that finished all meals.\n", p.number)
+	out <- PhilosopherAction{p.number, "COMPLETED"}
 
 	wg.Done()
 
-	fmt.Printf("Philosopher %d completed.", p.number)
+	fmt.Printf("PHILOSOPHER %d: completed.\n", p.number)
 
 }
 
-func host(in, out []chan string) {
+func host(in chan PhilosopherAction, out []chan string) {
 
 	chopSticksInUse := make([]bool, 5)
 	for i := range chopSticksInUse {
@@ -129,28 +129,28 @@ func host(in, out []chan string) {
 	fmt.Println("Host started listening for Philosophers authorization.")
 	for allFinished < 5 {
 
-		p, message := receiveCommunication(in)
+		action := <-in
 
-		fmt.Printf("Host received communication %s from %d.\n", message, p)
+		fmt.Printf("HOST: received communication %s from %d.\n", action.message, action.number)
 
-		if eating[p] && message == "FINISH" {
+		if eating[action.number] && action.message == "FINISH" {
 
-			registerPhilosopherFinishedMeal(p, eating, chopSticksInUse, &eatingCount)
+			registerPhilosopherFinishedMeal(action.number, eating, chopSticksInUse, &eatingCount)
 
 			pending = processPendingPhilosophers(pending, eating, chopSticksInUse, &eatingCount, out)
 
-		} else if message == "START" && !eating[p] {
+		} else if action.message == "START" && !eating[action.number] {
 
-			if !checkIfPhilosopherCanEat(p, eating, chopSticksInUse, &eatingCount, out[p]) {
-				pending = append(pending, p)
+			if !checkIfPhilosopherCanEat(action.number, eating, chopSticksInUse, &eatingCount, out[action.number]) {
+				pending = append(pending, action.number)
 			}
 
-		} else if message == "COMPLETED" {
-			fmt.Printf("Host received confirmation that Philosopher %d finished all meals.\n", p)
+		} else if action.message == "COMPLETED" {
+			fmt.Printf("HOST: received confirmation that Philosopher %d finished all meals.\n", action.number)
 			allFinished++
 		}
 
-		fmt.Printf("Eating Count: %d\n", eatingCount)
+		fmt.Printf("HOST: eating count %d\n", eatingCount)
 
 	}
 
@@ -158,24 +158,9 @@ func host(in, out []chan string) {
 
 }
 
-func receiveCommunication(in []chan string) (int, string) {
-	select {
-	case message := <-in[0]:
-		return 0, message
-	case message := <-in[1]:
-		return 1, message
-	case message := <-in[2]:
-		return 2, message
-	case message := <-in[3]:
-		return 3, message
-	case message := <-in[4]:
-		return 4, message
-	}
-}
-
 func registerPhilosopherFinishedMeal(p int, eating []bool, chopSticksInUse []bool, eatingCount *int) {
 
-	fmt.Printf("Host unregister Philosopher %d from eating.\n", p)
+	fmt.Printf("HOST: unregister Philosopher %d from eating.\n", p)
 
 	eating[p] = false
 	chopSticksInUse[p] = false
@@ -193,7 +178,7 @@ func checkIfPhilosopherCanEat(p int, eating []bool, chopSticksInUse []bool, eati
 		return true
 	}
 
-	fmt.Printf("Philosopher %d needs to wait.\n", p)
+	fmt.Printf("HOST: Philosopher %d needs to wait.\n", p)
 	return false
 
 }
@@ -225,8 +210,8 @@ func allowPhilosopherToEat(p int, eating, chopSticksInUse []bool, eatingCount *i
 	chopSticksInUse[p] = true
 	chopSticksInUse[(p+1)%5] = true
 	*eatingCount++
-	fmt.Printf("Host sending confirmation to Philosopher %d.\n", p)
+	fmt.Printf("HOST: sending confirmation to Philosopher %d.\n", p)
 	out <- "OK"
-	fmt.Printf("Host confirmed Philosopher %d.\n", p)
+	fmt.Printf("HOST: confirmed Philosopher %d.\n", p)
 
 }
