@@ -1,3 +1,16 @@
+//Write a Bubble Sort program in Go.
+// The program should prompt the user to type in a sequence of up to 10 integers.
+// The program should print the integers out on one line, in sorted order, from least to greatest.
+// Use your favorite search tool to find a description of how the bubble sort algorithm works.
+
+// As part of this program, you should write a function called BubbleSort() which takes a slice of integers as an argument and returns nothing.
+// The BubbleSort() function should modify the slice so that the elements are in sorted order.
+
+// A recurring operation in the bubble sort algorithm is the Swap operation which swaps the position of two adjacent elements in the slice.
+// You should write a Swap() function which performs this operation.
+// Your Swap() function should take two arguments, a slice of integers and an index value i which indicates a position in the slice.
+// The Swap() function should return nothing, but it should swap the contents of the slice in position i with the contents in position i+1.
+
 package main
 
 import (
@@ -10,17 +23,17 @@ func main() {
 
 	fmt.Println("Bubble Sort")
 
-	numbers := GetNumbersFromUser()
+	numbers := getNumbersFromUser()
 
-	PrintNumbers(numbers)
+	printNumbers(numbers)
 
-	BubbleSort(numbers)
+	bubbleSort(numbers)
 
-	PrintSortedNumbers(numbers)
+	printSortedNumbers(numbers)
 
 }
 
-func GetNumbersFromUser() []int {
+func getNumbersFromUser() []int {
 
 	unsortedNumbers := make([]int, 0, 10)
 	var data string
@@ -58,7 +71,7 @@ func GetNumbersFromUser() []int {
 	return unsortedNumbers
 }
 
-func PrintNumbers(numbers []int) {
+func printNumbers(numbers []int) {
 
 	fmt.Print("You insert the following numbers: ")
 
@@ -69,7 +82,7 @@ func PrintNumbers(numbers []int) {
 	fmt.Println()
 }
 
-func PrintSortedNumbers(numbers []int) {
+func printSortedNumbers(numbers []int) {
 
 	fmt.Print("The list of numbers sorted is: ")
 
@@ -80,7 +93,7 @@ func PrintSortedNumbers(numbers []int) {
 	fmt.Println()
 }
 
-func BubbleSort(numbers []int) {
+func bubbleSort(numbers []int) {
 
 	totalNumbers := len(numbers)
 
@@ -98,7 +111,7 @@ func BubbleSort(numbers []int) {
 
 }
 
-func Swap(numbers []int, index int) {
+func swap(numbers []int, index int) {
 
 	number := numbers[index]
 	numbers[index] = numbers[index+1]
